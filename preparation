@@ -1,0 +1,284 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <queue>
+#include <algorithm>
+using namespace std;
+
+class BookTicket;
+class Passenger;
+
+void bookingTheTicket(Passenger p, BookTicket &b);
+
+void cancelTicket(int id, BookTicket &b);
+
+class Passenger {
+public:
+    static int id;
+    int passengerId;
+    string name;
+    int age;
+    string berth;
+    int number;
+    string alloted;
+
+    Passenger() = default;
+
+    Passenger(string name, int age, string berth) {
+        this->name = name;
+        this->age = age;
+        this->berth = berth;
+        passengerId = id++;
+        number = -1;
+        alloted = "";
+    }
+};
+
+class BookTicket {
+public:
+    static int availableLowerberth;
+    static int availableMiddleberth;
+    static int availableUpperberth;
+    static int availableRacTickets;
+    static int availableWaitingList;
+
+    static vector<int> lowerBerthPositions;
+    static vector<int> middleBerthPositions;
+    static vector<int> upperBerthPositions;
+    static vector<int> racPositions;
+    static vector<int> waitingListPositions;
+    static vector<int> bookedTicketList;
+
+    static map<int, Passenger> passengers;
+
+    static queue<int> racList;
+    static queue<int> waitingList;
+
+    BookTicket() {
+        for (int i = 0; i < 1; i++)
+            lowerBerthPositions.push_back(i + 1);
+        for (int i = 0; i < 1; i++)
+            middleBerthPositions.push_back(i + 1);
+        for (int i = 0; i < 1; i++)
+            upperBerthPositions.push_back(i + 1);
+        for (int i = 0; i < 1; i++)
+            racPositions.push_back(i + 1);
+        for (int i = 0; i < 1; i++)
+            waitingListPositions.push_back(i + 1);
+    }
+
+    void booking(Passenger p, int position, string berth) {
+        p.number = position;
+        p.alloted = berth;
+        passengers[p.passengerId] = p;
+        bookedTicketList.push_back(p.passengerId);
+        cout << "___booked successfully____" << endl;
+    }
+
+    void addToRac(Passenger p, int position, string allotedRAC) {
+        p.number = position;
+        p.alloted = allotedRAC;
+        passengers[p.passengerId] = p;
+        racList.push(p.passengerId);
+        availableRacTickets--;
+        racPositions.erase(racPositions.begin());
+        cout << "___added to Rac successfully___" << endl;
+    }
+
+    void addToWaitingList(Passenger p, int position, string berth) {
+        p.number = position;
+        p.alloted = berth;
+        waitingList.push(p.passengerId);
+        passengers[p.passengerId] = p;
+        waitingListPositions.erase(waitingListPositions.begin());
+        cout << "____Added waiting List successfully___";
+    }
+
+    void cancel(int id) {
+        Passenger p = passengers[id];
+        passengers.erase(id);
+        bookedTicketList.erase(
+            remove(bookedTicketList.begin(), bookedTicketList.end(), id), bookedTicketList.end());
+
+        cout << "successfully____cancelled" << endl;
+        int positionBooked = p.number;
+        if (p.alloted == "L") {
+            availableLowerberth++;
+            lowerBerthPositions.push_back(positionBooked);
+        } else if (p.alloted == "M") {
+            availableMiddleberth++;
+            middleBerthPositions.push_back(positionBooked);
+        } else if (p.alloted == "U") {
+            availableUpperberth++;
+            upperBerthPositions.push_back(positionBooked);
+        }
+        cout << racList.size() << endl;
+        if (!racList.empty()) {
+            cout << racList.front();
+            Passenger prac = passengers[racList.front()];
+            int positionBooked = prac.number;
+            racPositions.push_back(positionBooked);
+            availableRacTickets++;
+
+            racList.pop();
+            if (waitingList.size() > 0) {
+                Passenger pw = passengers[waitingList.front()];
+                int position = pw.number;
+                waitingListPositions.push_back(position);
+                availableWaitingList++;
+                waitingList.pop();
+
+                pw.number = racPositions[0];
+                pw.alloted = "RAC";
+                racPositions.erase(racPositions.begin());
+                racList.push(pw.passengerId);
+                availableRacTickets--;
+            }
+            bookingTheTicket(prac, *this);
+        }
+    }
+
+    void printBookedDetails() {
+        cout << "Total number of passengers booked: " << passengers.size() << endl;
+
+        for (auto i : passengers) {
+            Passenger p = i.second;
+            cout << "passenger Id: " << p.passengerId << endl;
+            cout << "Name: " << p.name << endl;
+            cout << "Age: " << p.age << endl;
+            cout << "status: " << p.number << p.alloted << endl;
+        }
+    }
+
+    void printAvailableTickets() {
+        cout << "availableLowerberth: " << availableLowerberth << endl;
+        cout << "availableMiddleberth: " << availableMiddleberth << endl;
+        cout << "availableUpperberth: " << availableUpperberth << endl;
+        cout << "availableRacTickets: " << availableRacTickets << endl;
+        cout << "availableWaitingList: " << availableWaitingList << endl;
+    }
+};
+
+int Passenger::id = 1;
+int BookTicket::availableLowerberth = 1;
+int BookTicket::availableMiddleberth = 1;
+int BookTicket::availableUpperberth = 1;
+int BookTicket::availableRacTickets = 1;
+int BookTicket::availableWaitingList = 1;
+vector<int> BookTicket::lowerBerthPositions(1);
+vector<int> BookTicket::middleBerthPositions(1);
+vector<int> BookTicket::upperBerthPositions(1);
+vector<int> BookTicket::bookedTicketList;
+vector<int> BookTicket::racPositions(1);
+vector<int> BookTicket::waitingListPositions(1);
+queue<int> BookTicket::racList;
+queue<int> BookTicket::waitingList;
+map<int, Passenger> BookTicket::passengers;
+
+void bookingTheTicket(Passenger p, BookTicket &b) {
+    if (b.availableWaitingList == 0) {
+        cout << "No Tickets Available";
+        return;
+    }
+    if ((p.berth == "L" && b.availableLowerberth > 0) || (p.berth == "M" && b.availableMiddleberth > 0) || (p.berth == "U" && b.availableUpperberth > 0)) {
+        cout << "Preferred Berth Available" << endl;
+        if (p.berth == "L") {
+            cout << "lower berth given" << endl;
+            b.booking(p, BookTicket::lowerBerthPositions.front(), "L");
+            b.lowerBerthPositions.erase(b.lowerBerthPositions.begin());
+            b.availableLowerberth--;
+        } else if (p.berth == "M") {
+            cout << "Middle berth is given" << endl;
+            b.booking(p, b.middleBerthPositions.front(), "M");
+            b.middleBerthPositions.erase(b.middleBerthPositions.begin());
+            b.availableMiddleberth--;
+        } else if (p.berth == "U") {
+            cout << "upper berth is given" << endl;
+            b.booking(p, b.upperBerthPositions.front(), "U");
+            b.upperBerthPositions.erase(b.upperBerthPositions.begin());
+            b.availableUpperberth--;
+        }
+    } else if (b.availableLowerberth > 0) {
+        cout << "Preferred berth is not available, lower berth is given" << endl;
+        b.booking(p, b.lowerBerthPositions.front(), "L");
+        b.lowerBerthPositions.erase(b.lowerBerthPositions.begin());
+        b.availableLowerberth--;
+    } else if (b.availableMiddleberth > 0) {
+        cout << "Preferred berth is not available, middle berth is given" << endl;
+        b.booking(p, b.middleBerthPositions.front(), "M");
+        b.middleBerthPositions.erase(b.middleBerthPositions.begin());
+        b.availableMiddleberth--;
+    } else if (b.availableUpperberth > 0) {
+        cout << "Preferred berth is not available, upper berth is given" << endl;
+        b.booking(p, b.upperBerthPositions.front(), "U");
+        b.upperBerthPositions.erase(b.upperBerthPositions.begin());
+        b.availableUpperberth--;
+    } else if (b.availableRacTickets > 0) {
+        cout << "Rac available" << endl;
+        b.addToRac(p, b.racPositions.front(), "RAC");
+    } else if (b.availableWaitingList > 0) {
+        cout << "waiting List" << endl;
+        b.addToWaitingList(p, b.waitingListPositions.front(), "WL");
+        b.availableWaitingList--;
+    }
+}
+
+void cancelTicket(int id, BookTicket &b) {
+    if (b.passengers.find(id) == b.passengers.end()) {
+        cout << "Passenger's id is given wrong or not booked" << endl;
+        return;
+    } else {
+        b.cancel(id);
+    }
+}
+
+int main() {
+    BookTicket b;
+m:
+    int choice;
+    cout << "\n 1) Book Tickets";
+    cout << "\n 2) Cancel Tickets";
+    cout << "\n 3) Print booked Tickets";
+    cout << "\n 4) Print available Tickets";
+    cout << "\n 5) Exit" << endl;
+
+    cin >> choice;
+    switch (choice) {
+    case 1: {
+        cout << "For Booking Tickets, enter the following details:";
+        string name;
+        string berth;
+        int age;
+        cout << "\nName: ";
+        cin >> name;
+        cout << "\nAge: ";
+        cin >> age;
+        cout << "\nPreferred Berth: ";
+        cin >> berth;
+        Passenger p(name, age, berth);
+        bookingTheTicket(p, b);
+        break;
+    }
+    case 2: {
+        cout << "Enter passengerId to cancel the ticket: ";
+        int id;
+        cin >> id;
+        cancelTicket(id, b);
+        break;
+    }
+    case 3: {
+        cout << "Printing booked tickets details" << endl;
+        b.printBookedDetails();
+        break;
+    }
+    case 4: {
+        cout << "Printing available tickets" << endl;
+        b.printAvailableTickets();
+        break;
+    }
+    default:
+        break;
+    }
+    goto m;
+}
